@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>Tipovačka MS 2026</title>
+    <style>
+        body { font-family: Georgia, serif; background-color: #fdfdfd; margin: 10px; font-size: 11px; }
+        .header-container { display: inline-block; min-width: 100%; }
+        .header-title { background-color: #8b0000; color: white; padding: 5px 10px; font-weight: bold; display: block; margin-bottom: 5px; }
+        table { border-collapse: collapse; width: auto; table-layout: fixed; background-color: #fffcf0; margin-bottom: 20px; }
+        th, td { border: 1px solid #000; padding: 2px 4px; text-align: center; overflow: hidden; white-space: nowrap; }
+        .section-header td { font-weight: bold; font-size: 12px; }
+        .win-exact { background-color: #c8e6c9 !important; } 
+        .win-trend { background-color: #ffe0b2 !important; } 
+        .win-lose  { background-color: #ffcdd2 !important; } 
+        
+        /* Podfarbenie len pre text Slovensko */
+        .svk-text { background-color: #e3f2fd; font-weight: bold; padding: 2px 4px; border-radius: 2px; }
+        
+        tr.match-row { background-color: #ffffff; }
+        .col-match { width: 280px; text-align: center; } /* Mierne rozšírené pre lepšie zobrazenie vlajok */
+        .col-score { width: 95px; background-color: #ffcc00; font-weight: bold; }
+        .flag { vertical-align: middle; margin: 0 5px; border: 1px solid #ccc; width: 16px; height: auto; }
+        .score-input { font-family: Georgia, serif; width: 18px; text-align: center; border: none; background: transparent; font-weight: bold; outline: none; }
+        .bonus-wrapper { display: flex; align-items: center; justify-content: center; gap: 3px; }
+        .bonus-select { font-family: Georgia, serif; width: 70px; border: none; background: transparent; font-weight: bold; font-size: 10px; cursor: pointer; text-align-last: center; }
+        .flex-container { display: flex; align-items: flex-start; gap: 30px; margin-top: 10px; }
+        .leaderboard-table { width: 200px; background-color: #e3f2fd; }
+        .leaderboard-table th { background-color: #1976d2; color: white; padding: 5px; }
+        .legend-container { border: 1px solid #000; background: white; font-size: 10px; min-width: 250px; }
+        .legend-header { border-bottom: 1px solid #000; padding: 5px; font-weight: bold; font-style: italic; text-align: center; }
+        .legend-row { display: flex; border-bottom: 1px solid #000; }
+        .legend-left { flex: 1; padding: 4px; border-right: 1px solid #000; text-align: center; font-style: italic; }
+        .legend-right { flex: 1; padding: 4px; text-align: center; font-weight: bold; }
+        .warning-text { color: red; font-weight: bold; margin-left: 20px; align-self: center; font-size: 12px; }
+        .admin-panel { background: #eee; padding: 10px; border: 1px solid #ccc; margin-top: 20px; border-radius: 4px; width: fit-content; }
+        textarea, select, button { font-family: Georgia, serif; }
+    </style>
+</head>
+<body onload="init()">
+
+    <div class="header-container">
+        <div id="mainTitle" class="header-title" contenteditable="true" onblur="saveTitle()">Tipovačka MS 2026</div>
+    </div>
+
+    <table id="matchTable">
+        <thead>
+            <tr style="background-color: #f0e68c;">
+                <th style="width: 65px;">Dátum</th>
+                <th style="width: 40px;">Čas</th>
+                <th class="col-match">Zápas</th>
+                <th class="col-score">Výsledky</th>
+                <th id="colDeleteHeader" style="width: 30px;">X</th>
+            </tr>
+        </thead>
+        <tbody id="groupMatches"></tbody>
+        <tbody id="qfMatches"><tr class="section-header" style="background:#b0c4de"><td colspan="4">ŠTVRŤFINÁLE</td><td class="player-fill"></td><td></td></tr></tbody>
+        <tbody id="sfMatches"><tr class="section-header" style="background:#00bfff; color:white;"><td colspan="4">SEMIFINÁLE</td><td class="player-fill"></td><td></td></tr></tbody>
+        <tbody id="finalMatches"><tr class="section-header" style="background:#ffd700"><td colspan="4">ZÁPAS O BRONZ / FINÁLE</td><td class="player-fill"></td><td></td></tr></tbody>
+        <tbody id="bonusSection"></tbody>
+    </table>
+
+    <div class="flex-container">
+        <div>
+            <h3>Priebežné poradie</h3>
+            <table class="leaderboard-table">
+                <thead><tr><th>Meno</th><th>Body</th></tr></thead>
+                <tbody id="leaderboardBody"></tbody>
+            </table>
+        </div>
+
+        <div class="legend-container">
+            <div class="legend-header">Pravidlá a bodovanie</div>
+            <div class="legend-row"><div class="legend-left">Presný tip</div><div class="legend-right" style="background:#c8e6c9">+3 body</div></div>
+            <div class="legend-row"><div class="legend-left">Správny víťaz / Remíza</div><div class="legend-right" style="background:#ffe0b2">+1 bod</div></div>
+            <div class="legend-row"><div class="legend-left">Nesprávny tip</div><div class="legend-right" style="background:#ffcdd2">+0 bodov</div></div>
+            <div class="legend-row"><div class="legend-left">Bonus Majster Sveta</div><div class="legend-right">+10 bodov</div></div>
+            <div class="legend-row"><div class="legend-left">Bonus Striebro</div><div class="legend-right">+8 bodov</div></div>
+            <div class="legend-row"><div class="legend-left">Bonus Bronz</div><div class="legend-right">+5 bodov</div></div>
+            <div class="legend-row"><div class="legend-left">Bonus vypadáva</div><div class="legend-right">+3 body</div></div>
+            <div class="legend-row" style="background:#f0f0f0;"><div class="legend-left"><b>EXTRA Bonus Prvé tri miesta</b></div><div class="legend-right">+30 bodov</div></div>
+        </div>
+        <div class="warning-text">POZOR! VÝSLEDKY PLATNÉ V RIADNOM HRACOM ČASE, NIE PO PREDĹŽENÍ!</div>
+    </div>
+
+    <div class="admin-panel">
+        <strong>Administrácia:</strong><br>
+        <input type="date" id="matchDate"> <input type="time" id="matchTime">
+        <select id="matchCategory"><option value="group">Skupina</option><option value="qf">QF</option><option value="sf">SF</option><option value="final">F</option></select>
+        <select id="homeTeamSelect"></select> vs <select id="awayTeamSelect"></select>
+        <button onclick="addMatch()" style="background:green; color:white; border:none; padding:3px 10px; cursor:pointer;">Pridať</button>
+        <button onclick="protectedReset()" style="background:red; color:white; border:none; padding:3px 10px; cursor:pointer;">RESET</button>
+        <br><br>
+        <textarea id="teamInput" oninput="updateTeamSelects(); saveGlobal();" style="width:250px; height:40px;"></textarea>
+        <textarea id="playerInput" oninput="saveGlobal()" style="width:250px; height:40px;"></textarea>
+    </div>
+
+    <script>
+        const countryCodes = { "Slovensko":"sk","Česko":"cz","Kanada":"ca","USA":"us","Švajčiarsko":"ch","Nemecko":"de","Fínsko":"fi","Švédsko":"se","Lotyšsko":"lv","Rakúsko":"at","Nórsko":"no","Dánsko":"dk","Francúzsko":"fr","Kazachstan":"kz","Maďarsko":"hu","Slovinsko":"si","Taliansko":"it","Veľká Británia":"gb" };
+        let state = { matches: [], inputs: {}, bonuses: {}, title: "Tipovačka MS 2026" };
+
+        function init() {
+            const saved = localStorage.getItem('tipovacka_final_v7');
+            if(saved) state = JSON.parse(saved);
+            document.getElementById('mainTitle').innerText = state.title || "Tipovačka MS 2026";
+            document.getElementById('teamInput').value = localStorage.getItem('teams_list') || "Slovensko, Česko, Kanada, USA, Švajčiarsko, Nemecko, Fínsko, Švédsko, Nórsko";
+            document.getElementById('playerInput').value = localStorage.getItem('players_list') || "Meno 1, Meno 2";
+            updateTeamSelects(); renderTable();
+        }
+
+        function updateTeamSelects() {
+            const teams = document.getElementById('teamInput').value.split(',').map(t => t.trim()).filter(t => t !== "");
+            const h = document.getElementById('homeTeamSelect'), a = document.getElementById('awayTeamSelect');
+            const vh = h.value, va = a.value; h.innerHTML = ""; a.innerHTML = "";
+            teams.forEach(t => { h.innerHTML += `<option value="${t}" ${t===vh?'selected':''}>${t}</option>`; a.innerHTML += `<option value="${t}" ${t===va?'selected':''}>${t}</option>`; });
+        }
+
+        function saveTitle() { state.title = document.getElementById('mainTitle').innerText; saveGlobal(); }
+        function saveGlobal() {
+            localStorage.setItem('teams_list', document.getElementById('teamInput').value);
+            localStorage.setItem('players_list', document.getElementById('playerInput').value);
+            localStorage.setItem('tipovacka_final_v7', JSON.stringify(state)); renderTable();
+        }
+        function protectedReset() { if(prompt("Heslo:") === "83pETHER04") { localStorage.clear(); location.reload(); } }
+        
+        // Pomocná funkcia pre názov tímu s prípadným podfarbením
+        function formatTeamName(name) {
+            return name === "Slovensko" ? `<span class="svk-text">Slovensko</span>` : name;
+        }
+
+        // Funkcia na získanie vlajky
+        function getFlagImg(name) {
+            return countryCodes[name] ? `<img src="https://flagcdn.com/w40/${countryCodes[name]}.png" class="flag">` : `<span style="width:16px; display:inline-block;"></span>`;
+        }
+
+        function renderTable() {
+            const teams = document.getElementById('teamInput').value.split(',').map(t => t.trim()).filter(t => t !== "");
+            const players = document.getElementById('playerInput').value.split(',').map(p => p.trim()).filter(p => p !== "");
+            document.querySelectorAll('.dynamic-p').forEach(el => el.remove());
+            players.forEach(p => {
+                const th = document.createElement('th'); th.className = 'dynamic-p'; th.innerText = p; th.style.width = "95px";
+                document.getElementById('colDeleteHeader').before(th);
+            });
+            document.querySelectorAll('.match-row').forEach(r => r.remove());
+            const sects = { group: "groupMatches", qf: "qfMatches", sf: "sfMatches", final: "finalMatches" };
+            let scoreboard = players.map(p => ({ name: p, points: 0 }));
+
+            state.matches.forEach((m, mIdx) => {
+                const row = document.getElementById(sects[m.cat]).insertRow();
+                row.className = "match-row";
+                const rA = parseInt(state.inputs[`res_${mIdx}_a`]), rB = parseInt(state.inputs[`res_${mIdx}_b`]);
+                
+                let pCells = players.map((p, pIdx) => {
+                    const tA = parseInt(state.inputs[`tip_${mIdx}_${pIdx}_a`]), tB = parseInt(state.inputs[`tip_${mIdx}_${pIdx}_b`]);
+                    let sClass = "";
+                    if (!isNaN(rA) && !isNaN(rB) && !isNaN(tA) && !isNaN(tB)) {
+                        if (rA === tA && rB === tB) { sClass = "win-exact"; scoreboard[pIdx].points += 3; }
+                        else if ((rA > rB && tA > tB) || (rA < rB && tA < tB) || (rA === rB && tA === tB)) { sClass = "win-trend"; scoreboard[pIdx].points += 1; }
+                        else sClass = "win-lose";
+                    }
+                    return `<td class="${sClass}"><input type="text" class="score-input" value="${state.inputs[`tip_${mIdx}_${pIdx}_a`]||''}" oninput="state.inputs['tip_${mIdx}_${pIdx}_a']=this.value; saveGlobal()">:<input type="text" class="score-input" value="${state.inputs[`tip_${mIdx}_${pIdx}_b`]||''}" oninput="state.inputs['tip_${mIdx}_${pIdx}_b']=this.value; saveGlobal()"></td>`;
+                }).join('');
+
+                // ZMENA FORMÁTU: Vlajka - Štát : Štát - Vlajka
+                const matchHtml = `${getFlagImg(m.home)} ${formatTeamName(m.home)} : ${formatTeamName(m.away)} ${getFlagImg(m.away)}`;
+
+                row.innerHTML = `<td>${m.date}</td><td>${m.time}</td><td class="col-match">${matchHtml}</td><td class="col-score"><input type="text" class="score-input" value="${state.inputs[`res_${mIdx}_a`]||''}" oninput="state.inputs['res_${mIdx}_a']=this.value; saveGlobal()">:<input type="text" class="score-input" value="${state.inputs[`res_${mIdx}_b`]||''}" oninput="state.inputs['res_${mIdx}_b']=this.value; saveGlobal()"></td>${pCells}<td><button onclick="removeMatch(${mIdx})" style="background:red; color:white; border:none; cursor:pointer;">X</button></td>`;
+            });
+
+            renderBonusSection(teams, players, scoreboard);
+            document.getElementById('leaderboardBody').innerHTML = scoreboard.sort((a,b)=>b.points-a.points).map(h => `<tr><td style="text-align:left; padding-left:10px;">${h.name}</td><td><b>${h.points}</b></td></tr>`).join('');
+            document.querySelectorAll('.player-fill').forEach(el => el.colSpan = players.length);
+        }
+
+        function renderBonusSection(teams, players, scoreboard) {
+            const container = document.getElementById('bonusSection');
+            const cfg = [{n:"Majster Sveta",p:10},{n:"Striebro",p:8},{n:"Bronz",p:5},{n:"Vypadáva",p:3},{n:"Vypadáva",p:3}];
+            const opts = `<option value="">-</option>` + teams.map(t => `<option value="${t}">${t}</option>`).join('');
+            cfg.forEach((c, bIdx) => {
+                const row = container.insertRow(); row.className = "match-row";
+                const resVal = state.bonuses[`bonus_res_${bIdx}`];
+                let pCells = players.map((p, pIdx) => {
+                    const tipVal = state.bonuses[`bonus_tip_${bIdx}_${pIdx}`];
+                    let sClass = (resVal && tipVal) ? (resVal === tipVal ? "win-exact" : "win-lose") : "";
+                    if(sClass === "win-exact") scoreboard[pIdx].points += c.p;
+                    const flag = getFlagImg(tipVal);
+                    return `<td class="${sClass}"><div class="bonus-wrapper">${flag}<select class="bonus-select" onchange="state.bonuses['bonus_tip_${bIdx}_${pIdx}']=this.value; saveGlobal()">${opts.replace(`value="${tipVal}"`, `value="${tipVal}" selected`)}</select></div></td>`;
+                }).join('');
+                const resFlag = getFlagImg(resVal);
+                row.innerHTML = `<td colspan="3" style="text-align:center; font-weight:bold;">Bonus ${c.n}</td><td class="col-score"><div class="bonus-wrapper">${resFlag}<select class="bonus-select" onchange="state.bonuses['bonus_res_${bIdx}']=this.value; saveGlobal()">${opts.replace(`value="${resVal}"`, `value="${resVal}" selected`)}</select></div></td>${pCells}<td></td>`;
+            });
+        }
+
+        function addMatch() {
+            const h = document.getElementById('homeTeamSelect').value, a = document.getElementById('awayTeamSelect').value;
+            if(!h || !a) return;
+            state.matches.push({ date: document.getElementById('matchDate').value, time: document.getElementById('matchTime').value, cat: document.getElementById('matchCategory').value, home: h, away: a });
+            saveGlobal();
+        }
+        function removeMatch(i) { state.matches.splice(i,1); saveGlobal(); }
+    </script>
+</body>
+</html>
